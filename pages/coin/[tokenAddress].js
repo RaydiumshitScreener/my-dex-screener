@@ -1,87 +1,49 @@
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import Link from 'next/link';
 import styles from '../../styles/Home.module.css';
 
-export default function CoinPage() {
+const TokenPage = () => {
   const router = useRouter();
   const { tokenAddress } = router.query;
-  const [coinData, setCoinData] = useState(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!tokenAddress) return;
-
-    async function fetchCoinData() {
-      try {
-        setLoading(true);
-        // Mock data as fallback (replace with Birdeye API when you have a key)
-        const mockData = {
-          name: 'Unknown Token',
-          symbol: 'TKN',
-          price: 0,
-          priceChange24h: 0,
-          marketCap: 0,
-          liquidity: 0,
-          volume24h: 0,
-          address: tokenAddress,
-        };
-
-        // Uncomment to use Birdeye API with a valid key
-        /*
-        const response = await fetch(
-          `https://public-api.birdeye.so/defi/token_overview?address=${tokenAddress}`,
-          {
-            headers: {
-              'X-API-KEY': 'YOUR_BIRDEYE_API_KEY', // Replace with your API key
-            },
-          }
-        );
-        const data = await response.json();
-        const priceResponse = await fetch(
-          `https://public-api.birdeye.so/defi/price?address=${tokenAddress}`,
-          {
-            headers: {
-              'X-API-KEY': 'YOUR_BIRDEYE_API_KEY',
-            },
-          }
-        );
-        const priceData = await priceResponse.json();
-
-        setCoinData({
-          name: data.data?.name || 'Unknown',
-          symbol: data.data?.symbol || 'N/A',
-          price: priceData.data?.value || 0,
-          priceChange24h: priceData.data?.priceChange?.['24h'] || 0,
-          marketCap: priceData.data?.mc || 0,
-          liquidity: data.data?.liquidity || 0,
-          volume24h: data.data?.v24hUSD || 0,
-          address: tokenAddress,
-        });
-        */
-        setCoinData(mockData); // Use mock data for now
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching coin data:', error);
-        setLoading(false);
-      }
-    }
-
-    fetchCoinData();
-  }, [tokenAddress]);
-
-  const handleBuy = () => {
-    router.push({
-      pathname: '/',
-      query: { selectedToken: coinData?.address, tokenName: coinData?.symbol },
-    });
+  const mockTokens = {
+    'So11111111111111111111111111111111111111112': {
+      name: 'Wrapped SOL',
+      symbol: 'SOL',
+      price: 0.1,
+      marketCap: 5000000,
+      liquidity: 1000000,
+      volume: 200000,
+      change24h: 5.0,
+    },
+    '7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj': {
+      name: 'StarAtlas',
+      symbol: 'ATLAS',
+      price: 0.05,
+      marketCap: 3000000,
+      liquidity: 750000,
+      volume: 150000,
+      change24h: 3.0,
+    },
   };
 
-  if (loading) return <div className={styles.container}><p>Loading...</p></div>;
-  if (!coinData) return <div className={styles.container}><p>Coin not found</p></div>;
+  const token = mockTokens[tokenAddress] || {
+    name: 'Unknown Token',
+    symbol: 'TKN',
+    price: 0,
+    marketCap: 0,
+    liquidity: 0,
+    volume: 0,
+    change24h: 0,
+  };
 
   return (
     <div className={styles.pageWrapper}>
+      <Head>
+        <title>{token.name} - Bitlyx Sol</title>
+        <meta name="description" content={`Details for ${token.name} on Raydium DEX`} />
+      </Head>
       <header className={styles.header}>
         <div className={styles.logo}>Bitlyx Sol</div>
         <nav className={styles.nav}>
@@ -101,17 +63,13 @@ export default function CoinPage() {
       </header>
       <main className={styles.container}>
         <div className={styles.swapBox}>
-          <h1>{coinData.name} ({coinData.symbol})</h1>
-          <div className={styles.balanceInfo}>
-            <p>Price: ${coinData.price.toFixed(6)}</p>
-            <p>24h Change: <span className={coinData.priceChange24h >= 0 ? styles.priceChange : `${styles.priceChange} ${styles.negative}`}>{coinData.priceChange24h.toFixed(2)}%</span></p>
-            <p>Market Cap: ${coinData.marketCap.toLocaleString()}</p>
-            <p>Liquidity: ${coinData.liquidity.toLocaleString()}</p>
-            <p>24h Volume: ${coinData.volume24h.toLocaleString()}</p>
-          </div>
-          <button className={styles.button} onClick={handleBuy}>
-            Buy {coinData.symbol}
-          </button>
+          <h1>{token.name} ({token.symbol})</h1>
+          <p>Price: ${token.price.toFixed(6)}</p>
+          <p>24h Change: {token.change24h.toFixed(2)}%</p>
+          <p>Market Cap: ${token.marketCap.toLocaleString()}</p>
+          <p>Liquidity: ${token.liquidity.toLocaleString()}</p>
+          <p>24h Volume: ${token.volume.toLocaleString()}</p>
+          <button className={styles.button}>Buy {token.symbol}</button>
         </div>
       </main>
       <footer className={styles.footer}>
@@ -128,4 +86,6 @@ export default function CoinPage() {
       </footer>
     </div>
   );
-}
+};
+
+export default TokenPage;

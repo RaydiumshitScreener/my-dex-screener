@@ -2,15 +2,12 @@ import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import * as solanaWeb3 from '@solana/web3.js';
-import bs58 from 'bs58';
-import { Metaplex } from '@metaplex-foundation/js';
-import { Liquidity, MAINNET_PROGRAM_ID } from '@raydium-io/raydium-sdk';
 import axios from 'axios';
 import styles from '../styles/Home.module.css';
 
 const RAYDIUM_PUBLIC_KEY = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
-const HTTP_URL = 'https://api.mainnet-beta.solana.com';
-const WSS_URL = 'wss://api.mainnet-beta.solana.com';
+const HTTP_URL = 'https://rpc.ankr.com/solana'; // Switched to Ankr
+const WSS_URL = 'wss://rpc.ankr.com/solana/ws'; // Switched to Ankr
 const INSTRUCTION_NAME = 'initialize2';
 const LIQUIDITY_API = '/mock-liquidity.json';
 const TOKEN_API = 'https://api.raydium.io/v2/sdk/token/raydium.mainnet.json';
@@ -45,25 +42,40 @@ const NewPairs = () => {
     };
 
     const getTokenMetadata = async (tokenMint) => {
+      const mockTokens = {
+        'So11111111111111111111111111111111111111112': { name: 'Wrapped SOL', symbol: 'SOL' },
+        '7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj': { name: 'StarAtlas', symbol: 'ATLAS' },
+      };
+      const mintStr = tokenMint.toBase58();
+      if (mockTokens[mintStr]) {
+        console.log('Using mock token metadata:', mockTokens[mintStr]);
+        return mockTokens[mintStr];
+      }
       try {
         const { data } = await axios.get(TOKEN_API, { timeout: 5000 });
-        const token = [...(data.official || []), ...(data.unOfficial || [])].find((t) => t.mint === tokenMint.toBase58());
-        return token ? { name: token.name, symbol: token.symbol } : { name: `Token_${tokenMint.toBase58().slice(0, 4)}`, symbol: 'TKN' };
-      } catch {
-        return { name: `Token_${tokenMint.toBase58().slice(0, 4)}`, symbol: 'TKN' };
+        const token = [...(data.official || []), ...(data.unOfficial || [])].find((t) => t.mint === mintStr);
+        return token ? { name: token.name, symbol: token.symbol } : { name: `Token_${mintStr.slice(0, 4)}`, symbol: 'TKN' };
+      } catch (error) {
+        console.error('Token metadata fetch failed:', error);
+        return { name: `Token_${mintStr.slice(0, 4)}`, symbol: 'TKN' };
       }
     };
 
     const getPoolData = async (poolAddress) => {
       try {
         const { data } = await axios.get(LIQUIDITY_API, { timeout: 5000 });
+        console.log('Mock liquidity data:', data);
         const pool = [...(data.official || []), ...(data.unOfficial || [])].find((p) => p.id === poolAddress);
+        if (!pool) {
+          throw new Error(`Pool ${poolAddress} not found in mock data`);
+        }
+        console.log('Found pool:', pool);
         return {
-          liquidity: pool?.liquidity?.toLocaleString() || 'TBD',
-          initialLiquidity: pool?.liquidity?.toLocaleString() || 'TBD',
-          marketCap: pool?.marketCap?.toLocaleString() || 'N/A',
-          txns: pool?.txns || 'TBD',
-          volume: pool?.volume24h?.toLocaleString() || 'N/A',
+          liquidity: pool.liquidity.toLocaleString(),
+          initialLiquidity: pool.liquidity.toLocaleString(),
+          marketCap: pool.marketCap.toLocaleString(),
+          txns: pool.txns.toString(),
+          volume: pool.volume24h.toLocaleString(),
         };
       } catch (error) {
         console.error('Error fetching pool data:', error);
@@ -91,9 +103,9 @@ const NewPairs = () => {
       }
 
       const tokenMint = initInstruction.accounts[4];
-      const poolAddress = initInstruction.accounts[0];
-      if (!isValidPublicKey(tokenMint.toBase58()) || !isValidPublicKey(poolAddress.toBase58())) {
-        console.warn('Invalid tokenMint or poolAddress:', { tokenMint: tokenMint.toBase58(), poolAddress: poolAddress.toBase58() });
+      const poolAddress = initInstruction.accounts[0].toBase58();
+      if (!isValidPublicKey(tokenMint.toBase58()) || !isValidPublicKey(poolAddress)) {
+        console.warn('Invalid tokenMint or poolAddress:', { tokenMint: tokenMint.toBase58(), poolAddress });
         return;
       }
 
@@ -115,6 +127,10 @@ const NewPairs = () => {
       };
 
       setPairs((prev) => {
+        if (prev.some((p) => p.id === newPair.id)) {
+          console.log('Skipping duplicate pair:', newPair.id);
+          return prev;
+        }
         console.log('Adding pair:', newPair, 'Current pairs:', prev);
         return [newPair, ...prev].slice(0, 100);
       });
@@ -138,7 +154,7 @@ const NewPairs = () => {
         for (const pool of recentPools) {
           const mockTransaction = {
             transaction: {
-              signatures: ['mock' + pool.id],
+              signatures: ['mock-' + pool.id],
               message: {
                 instructions: [
                   {
@@ -161,29 +177,6 @@ const NewPairs = () => {
         }
       } catch (error) {
         console.error('Error fetching initial pools:', error.message);
-        const mockPoolId = new solanaWeb3.Keypair().publicKey.toBase58();
-        const mockTransaction = {
-          transaction: {
-            signatures: ['mock' + mockPoolId],
-            message: {
-              instructions: [
-                {
-                  programId: RAYDIUM,
-                  data: INSTRUCTION_NAME,
-                  accounts: [
-                    new solanaWeb3.PublicKey(mockPoolId),
-                    {},
-                    {},
-                    {},
-                    new solanaWeb3.PublicKey('So11111111111111111111111111111111111111112'),
-                  ],
-                },
-              ],
-            },
-          },
-          meta: { blockTime: Math.floor(Date.now() / 1000) },
-        };
-        await addPair(mockTransaction);
       }
     };
 
@@ -219,34 +212,10 @@ const NewPairs = () => {
 
     subscribeToNewPools();
 
-    const mockInterval = setInterval(async () => {
-      const mockPoolId = new solanaWeb3.Keypair().publicKey.toBase58();
-      const mockTransaction = {
-        transaction: {
-          signatures: ['mock' + Math.random().toString(36).substring(2)],
-          message: {
-            instructions: [
-              {
-                programId: RAYDIUM,
-                data: INSTRUCTION_NAME,
-                accounts: [
-                  new solanaWeb3.PublicKey(mockPoolId),
-                  {},
-                  {},
-                  {},
-                  new solanaWeb3.PublicKey('So11111111111111111111111111111111111111112'),
-                ],
-              },
-            ],
-          },
-        },
-        meta: { blockTime: Math.floor(Date.now() / 1000) },
-      };
-      await addPair(mockTransaction);
-    }, 5000);
-
-    return () => clearInterval(mockInterval);
+    return () => {};
   }, []);
+
+  console.log('Rendering pairs:', pairs);
 
   return (
     <div className={styles.pageWrapper}>
