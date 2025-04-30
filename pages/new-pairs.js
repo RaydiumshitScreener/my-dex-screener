@@ -6,8 +6,8 @@ import axios from 'axios';
 import styles from '../styles/Home.module.css';
 
 const RAYDIUM_PUBLIC_KEY = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
-const HTTP_URL = 'https://rpc.ankr.com/solana'; // Switched to Ankr
-const WSS_URL = 'wss://rpc.ankr.com/solana/ws'; // Switched to Ankr
+const HTTP_URL = 'https://dimensional-twilight-sun.solana-mainnet.quiknode.pro/4b31011e30a3f1919ca1c85281b242acafdad215/';
+const WSS_URL = 'wss://dimensional-twilight-sun.solana-mainnet.quiknode.pro/4b31011e30a3f1919ca1c85281b242acafdad215/';
 const INSTRUCTION_NAME = 'initialize2';
 const LIQUIDITY_API = '/mock-liquidity.json';
 const TOKEN_API = 'https://api.raydium.io/v2/sdk/token/raydium.mainnet.json';
