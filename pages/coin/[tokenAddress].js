@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import Script from 'next/script';
 import { useState } from 'react';
 import styles from '../../styles/Home.module.css';
 
@@ -70,15 +71,13 @@ const TokenPage = () => {
     }
 
     try {
-      // Placeholder for Raydium swap (requires Helius RPC)
       setSwapStatus(`Mock swap: ${amount} SOL for ${token.symbol}`);
       console.log('Swap details:', {
         tokenMint: tokenAddress,
         amount: amount,
-        commissionWallet: 'YOUR_SOLANA_WALLET_ADDRESS', // Replace with your wallet
-        commissionRate: 0.005, // 0.5% commission
+        commissionWallet: 'YOUR_SOLANA_WALLET_ADDRESS',
+        commissionRate: 0.005,
       });
-      // Real swap implementation will be added with Helius
     } catch (error) {
       console.error('Swap failed:', error);
       setSwapStatus('Swap failed. Try again.');
@@ -90,8 +89,31 @@ const TokenPage = () => {
       <Head>
         <title>{token.name} - Bitlyx Sol</title>
         <meta name="description" content={`Details for ${token.name} on Raydium DEX`} />
-        <script src="https://s3.tradingview.com/tv.js"></script>
       </Head>
+      <Script
+        src="https://s3.tradingview.com/tv.js"
+        strategy="afterInteractive"
+        onLoad={() => {
+          new TradingView.widget({
+            container_id: 'tradingview_chart',
+            width: '100%',
+            height: '100%',
+            symbol: token.symbol === 'SOL' ? 'SOLUSD' : 'ATLASUSD',
+            interval: 'D',
+            timezone: 'Etc/UTC',
+            theme: 'dark',
+            style: '1',
+            locale: 'en',
+            toolbar_bg: '#f1f3f6',
+            enable_publishing: false,
+            allow_symbol_change: false,
+            studies: ['MACD@tv-basicstudies'],
+            show_popup_button: true,
+            popup_width: '1000',
+            popup_height: '650',
+          });
+        }}
+      />
       <header className={styles.header}>
         <div className={styles.logo}>Bitlyx Sol</div>
         <nav className={styles.nav}>
@@ -119,30 +141,6 @@ const TokenPage = () => {
         <div className={styles.swapBox}>
           <h1>{token.name} ({token.symbol})</h1>
           <div id="tradingview_chart" style={{ height: '400px', marginBottom: '20px' }}></div>
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                new TradingView.widget({
-                  "container_id": "tradingview_chart",
-                  "width": "100%",
-                  "height": "100%",
-                  "symbol": "${token.symbol === 'SOL' ? 'SOLUSD' : 'ATLASUSD'}",
-                  "interval": "D",
-                  "timezone": "Etc/UTC",
-                  "theme": "dark",
-                  "style": "1",
-                  "locale": "en",
-                  "toolbar_bg": "#f1f3f6",
-                  "enable_publishing": false,
-                  "allow_symbol_change": false,
-                  "studies": ["MACD@tv-basicstudies"],
-                  "show_popup_button": true,
-                  "popup_width": "1000",
-                  "popup_height": "650"
-                });
-              `,
-            }}
-          />
           <p>Price: ${token.price.toFixed(6)}</p>
           <p>24h Change: {token.change24h.toFixed(2)}%</p>
           <p>Market Cap: ${token.marketCap.toLocaleString()}</p>
