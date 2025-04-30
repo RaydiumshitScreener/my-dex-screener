@@ -75,7 +75,7 @@ const TokenPage = () => {
       console.log('Swap details:', {
         tokenMint: tokenAddress,
         amount: amount,
-        commissionWallet: 'YOUR_SOLANA_WALLET_ADDRESS',
+        commissionWallet: 'FohW4KYMUv2VpwaB3H4SMZcew32mAL9cpDbqqexskmPu',
         commissionRate: 0.005,
       });
     } catch (error) {
