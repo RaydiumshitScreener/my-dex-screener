@@ -6,15 +6,12 @@ import axios from 'axios';
 import styles from '../styles/Home.module.css';
 
 const RAYDIUM_PUBLIC_KEY = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
-const HTTP_URL = 'https://dimensional-twilight-sun.solana-mainnet.quiknode.pro/4b31011e30a3f1919ca1c85281b242acafdad215/';
-const WSS_URL = 'wss://dimensional-twilight-sun.solana-mainnet.quiknode.pro/4b31011e30a3f1919ca1c85281b242acafdad215/';
-const INSTRUCTION_NAME = 'initialize2';
 const LIQUIDITY_API = '/mock-liquidity.json';
 const TOKEN_API = 'https://api.raydium.io/v2/sdk/token/raydium.mainnet.json';
 
 const NewPairs = () => {
   const [pairs, setPairs] = useState([]);
-  const [rpcError, setRpcError] = useState(null);
+  const [rpcError, setRpcError] = useState('Using mock data (RPC disabled).');
 
   const isValidPublicKey = (key) => {
     try {
@@ -26,16 +23,7 @@ const NewPairs = () => {
   };
 
   useEffect(() => {
-    const connection = new solanaWeb3.Connection(HTTP_URL, { wsEndpoint: WSS_URL });
     const RAYDIUM = new solanaWeb3.PublicKey(RAYDIUM_PUBLIC_KEY);
-
-    connection.getVersion().then((version) => {
-      console.log('Connected to Solana RPC. Version:', version['solana-core']);
-      setRpcError(null);
-    }).catch((error) => {
-      console.error('Failed to connect to Solana RPC:', error);
-      setRpcError('Failed to connect to Solana network. Using mock data.');
-    });
 
     const formatTimestamp = (timestamp) => {
       return new Date(timestamp * 1000).toLocaleString();
@@ -159,7 +147,7 @@ const NewPairs = () => {
                 instructions: [
                   {
                     programId: RAYDIUM,
-                    data: INSTRUCTION_NAME,
+                    data: 'initialize2',
                     accounts: [
                       new solanaWeb3.PublicKey(pool.id),
                       {},
@@ -181,36 +169,6 @@ const NewPairs = () => {
     };
 
     fetchInitialPools();
-
-    const subscribeToNewPools = async () => {
-      try {
-        const subscriptionId = connection.onLogs(
-          RAYDIUM,
-          async (logs) => {
-            console.log('Received logs:', logs);
-            try {
-              const transaction = await connection.getParsedTransaction(logs.signature, {
-                maxSupportedTransactionVersion: 0,
-                commitment: 'confirmed',
-              }, 10000);
-              console.log('Transaction data:', transaction);
-              if (transaction) {
-                console.log('New pool transaction:', transaction.transaction.signatures[0]);
-                await addPair(transaction);
-              }
-            } catch (error) {
-              console.error('Transaction fetch error:', error, 'Signature:', logs.signature);
-            }
-          },
-          'confirmed'
-        );
-        console.log('Subscribed to Raydium pool creation logs. ID:', subscriptionId);
-      } catch (error) {
-        console.error('Error subscribing to new pools:', error);
-      }
-    };
-
-    subscribeToNewPools();
 
     return () => {};
   }, []);
