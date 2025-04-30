@@ -1,11 +1,15 @@
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useState } from 'react';
 import styles from '../../styles/Home.module.css';
 
 const TokenPage = () => {
   const router = useRouter();
   const { tokenAddress } = router.query;
+  const [amount, setAmount] = useState('');
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [swapStatus, setSwapStatus] = useState('');
 
   const mockTokens = {
     'So11111111111111111111111111111111111111112': {
@@ -38,11 +42,55 @@ const TokenPage = () => {
     change24h: 0,
   };
 
+  const connectWallet = async () => {
+    try {
+      const { solana } = window;
+      if (solana && solana.isPhantom) {
+        await solana.connect();
+        setWalletConnected(true);
+        setSwapStatus('Wallet connected');
+      } else {
+        setSwapStatus('Phantom wallet not found. Please install Phantom.');
+      }
+    } catch (error) {
+      console.error('Wallet connection failed:', error);
+      setSwapStatus('Failed to connect wallet');
+    }
+  };
+
+  const handleSwap = async (e) => {
+    e.preventDefault();
+    if (!walletConnected) {
+      setSwapStatus('Please connect wallet first');
+      return;
+    }
+    if (!amount || isNaN(amount) || amount <= 0) {
+      setSwapStatus('Enter a valid amount');
+      return;
+    }
+
+    try {
+      // Placeholder for Raydium swap (requires Helius RPC)
+      setSwapStatus(`Mock swap: ${amount} SOL for ${token.symbol}`);
+      console.log('Swap details:', {
+        tokenMint: tokenAddress,
+        amount: amount,
+        commissionWallet: 'YOUR_SOLANA_WALLET_ADDRESS', // Replace with your wallet
+        commissionRate: 0.005, // 0.5% commission
+      });
+      // Real swap implementation will be added with Helius
+    } catch (error) {
+      console.error('Swap failed:', error);
+      setSwapStatus('Swap failed. Try again.');
+    }
+  };
+
   return (
     <div className={styles.pageWrapper}>
       <Head>
         <title>{token.name} - Bitlyx Sol</title>
         <meta name="description" content={`Details for ${token.name} on Raydium DEX`} />
+        <script src="https://s3.tradingview.com/tv.js"></script>
       </Head>
       <header className={styles.header}>
         <div className={styles.logo}>Bitlyx Sol</div>
@@ -58,18 +106,69 @@ const TokenPage = () => {
           <button className={styles.settingsButton}>⚙️</button>
         </nav>
         <div className={styles.walletSection}>
-          <button className={styles.connectButton}>Connect Wallet</button>
+          <button
+            className={styles.connectButton}
+            onClick={connectWallet}
+            disabled={walletConnected}
+          >
+            {walletConnected ? 'Wallet Connected' : 'Connect Wallet'}
+          </button>
         </div>
       </header>
       <main className={styles.container}>
         <div className={styles.swapBox}>
           <h1>{token.name} ({token.symbol})</h1>
+          <div id="tradingview_chart" style={{ height: '400px', marginBottom: '20px' }}></div>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                new TradingView.widget({
+                  "container_id": "tradingview_chart",
+                  "width": "100%",
+                  "height": "100%",
+                  "symbol": "${token.symbol === 'SOL' ? 'SOLUSD' : 'ATLASUSD'}",
+                  "interval": "D",
+                  "timezone": "Etc/UTC",
+                  "theme": "dark",
+                  "style": "1",
+                  "locale": "en",
+                  "toolbar_bg": "#f1f3f6",
+                  "enable_publishing": false,
+                  "allow_symbol_change": false,
+                  "studies": ["MACD@tv-basicstudies"],
+                  "show_popup_button": true,
+                  "popup_width": "1000",
+                  "popup_height": "650"
+                });
+              `,
+            }}
+          />
           <p>Price: ${token.price.toFixed(6)}</p>
           <p>24h Change: {token.change24h.toFixed(2)}%</p>
           <p>Market Cap: ${token.marketCap.toLocaleString()}</p>
           <p>Liquidity: ${token.liquidity.toLocaleString()}</p>
           <p>24h Volume: ${token.volume.toLocaleString()}</p>
-          <button className={styles.button}>Buy {token.symbol}</button>
+          <div className={styles.swapForm}>
+            <h2>Trade {token.symbol}</h2>
+            <form onSubmit={handleSwap}>
+              <label>
+                Amount (SOL):
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="Enter SOL amount"
+                  className={styles.input}
+                  step="0.01"
+                  min="0"
+                />
+              </label>
+              <button type="submit" className={styles.button} disabled={!walletConnected}>
+                Swap for {token.symbol}
+              </button>
+            </form>
+            {swapStatus && <p className={styles.status}>{swapStatus}</p>}
+          </div>
         </div>
       </main>
       <footer className={styles.footer}>

@@ -37,15 +37,15 @@ const NewPairs = () => {
       const mintStr = tokenMint.toBase58();
       if (mockTokens[mintStr]) {
         console.log('Using mock token metadata:', mockTokens[mintStr]);
-        return mockTokens[mintStr];
+        return { ...mockTokens[mintStr], mint: mintStr };
       }
       try {
         const { data } = await axios.get(TOKEN_API, { timeout: 5000 });
         const token = [...(data.official || []), ...(data.unOfficial || [])].find((t) => t.mint === mintStr);
-        return token ? { name: token.name, symbol: token.symbol } : { name: `Token_${mintStr.slice(0, 4)}`, symbol: 'TKN' };
+        return token ? { name: token.name, symbol: token.symbol, mint: mintStr } : { name: `Token_${mintStr.slice(0, 4)}`, symbol: 'TKN', mint: mintStr };
       } catch (error) {
         console.error('Token metadata fetch failed:', error);
-        return { name: `Token_${mintStr.slice(0, 4)}`, symbol: 'TKN' };
+        return { name: `Token_${mintStr.slice(0, 4)}`, symbol: 'TKN', mint: mintStr };
       }
     };
 
@@ -104,6 +104,7 @@ const NewPairs = () => {
         id: signature,
         created: formatTimestamp(timestamp),
         token: `${tokenMetadata.name} (${tokenMetadata.symbol})`,
+        tokenMint: tokenMetadata.mint,
         liquidity: poolData.liquidity,
         initialLiquidity: poolData.initialLiquidity,
         marketCap: poolData.marketCap,
@@ -231,7 +232,11 @@ const NewPairs = () => {
                 {pairs.map((pair) => (
                   <tr key={pair.id}>
                     <td>{pair.created}</td>
-                    <td>{pair.token}</td>
+                    <td>
+                      <Link href={`/coin/${pair.tokenMint}`} className={styles.footerLink}>
+                        {pair.token}
+                      </Link>
+                    </td>
                     <td>${pair.liquidity}</td>
                     <td>${pair.initialLiquidity}</td>
                     <td>${pair.marketCap}</td>
