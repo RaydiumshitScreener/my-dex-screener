@@ -1,0 +1,26 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(180deg, #0D1117 0%, #161B22 100%);
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Кастомізація скролл-панелі для select */
+select::-webkit-scrollbar {
+  width: 8px;
+}
+
+select::-webkit-scrollbar-track {
+  background: #0D1117; /* Чорний фон треку */
+  border-radius: 8px;
+}
+
+select::-webkit-scrollbar-thumb {
+  background: #38EF7D; /* Зелений скролл-бар */
+  border-radius: 8px;
+}
+
+select::-webkit-scrollbar-thumb:hover {
+  background: #11998E; /* Темніший зелений при наведенні */
+}
